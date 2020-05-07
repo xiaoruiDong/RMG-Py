@@ -254,6 +254,17 @@ class TestSurfaceReaction(unittest.TestCase):
                                numpy.log10(target),
                                places=0)
 
+    def test_equilibrium_constant_surface_kc(self):
+        """
+        Test the Reaction.get_equilibrium_constant() method.
+        """
+        Tlist = numpy.arange(400.0, 1600.0, 200.0, numpy.float64)
+        Kclist0 = [float(v) for v in
+                   ['1.3900534E07', '629.54784', '4.0169965',
+                    '0.195068', '0.0264375', '0.0064467']]
+        Kclist = self.rxn1s.get_equilibrium_constants(Tlist, type='Kc')
+        for i in range(len(Tlist)):
+            self.assertAlmostEqual(Kclist[i] / Kclist0[i], 1.0, 4)
 
 class TestReaction(unittest.TestCase):
     """
