@@ -5,7 +5,7 @@
 This input file shows how to calculate the thermochemistry of a species using isodesmic reactions in Arkane
 """
 title = 'Isodesmic Example'
-modelChemistry = 'wb97m-v/def2-tzvpd'
+modelChemistry = LevelOfTheory('wb97m-v', 'def2-tzvpd', 'qchem')
 
 # Setting `useIsodesmicReactions` to True will also force useAtomCorrections to True and useBondCorrections to False
 useIsodesmicReactions = True
