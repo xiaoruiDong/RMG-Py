@@ -47,10 +47,12 @@ import pybel
 from rmgpy import settings
 from rmgpy.molecule import Atom, Bond, get_element
 from rmgpy.molecule import Molecule as RMGMolecule
+from rmgpy.rmgobject import recursive_make_object
 
 from arkane.encorr.decomp import get_substructs
 from arkane.encorr.reference import ReferenceSpecies, ReferenceDatabase
 from arkane.exceptions import BondAdditivityCorrectionError
+from arkane.modelchem import LevelOfTheory, CompositeLevelOfTheory
 
 # ######## Database loading ##########
 quantum_corrections_path = os.path.join(settings['database.directory'], 'quantum_corrections', 'data.py')
@@ -58,10 +60,15 @@ spec = importlib.util.spec_from_file_location("quantum_calculations", quantum_co
 data = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(data)
 
+# Convert module to dictionary and create level of theory objects from their string representations
+data_dict = recursive_make_object(
+    {k: v for k, v in vars(data).items() if not k.startswith('__')},
+    {'LevelOfTheory': LevelOfTheory, 'CompositeLevelOfTheory': CompositeLevelOfTheory}
+)
+
 # Assign the data here so that it can be imported
-for k, v in vars(data).items():
-    if not k.startswith('__'):
-        vars()[k] = v
+for k, v in data_dict.items():
+    vars()[k] = v
 ######################################
 
 
@@ -88,17 +95,17 @@ class BACDatapoint:
 
     class _Decorators:
         @staticmethod
-        def assert_model_chemistry(func):
+        def assert_level_of_theory(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                if args[0].model_chemistry is None:  # args[0] is the instance
-                    raise BondAdditivityCorrectionError('Model chemistry is not defined')
+                if args[0].level_of_theory is None:  # args[0] is the instance
+                    raise BondAdditivityCorrectionError('Level of theory is not defined')
                 return func(*args, **kwargs)
             return wrapper
 
-    def __init__(self, spc: ReferenceSpecies, model_chemistry: str = None):
+    def __init__(self, spc: ReferenceSpecies, level_of_theory: Union[LevelOfTheory, CompositeLevelOfTheory] = None):
         self.spc = spc
-        self.model_chemistry = model_chemistry
+        self.level_of_theory = level_of_theory
 
         self._mol = None
         self._mol_type = None
@@ -133,9 +140,9 @@ class BACDatapoint:
 
         return self._mol
 
-    @_Decorators.assert_model_chemistry
+    @_Decorators.assert_level_of_theory
     def _mol_from_geo(self):
-        xyz = self.spc.calculated_data[self.model_chemistry].xyz_dict
+        xyz = self.spc.calculated_data[self.level_of_theory].xyz_dict
         self._mol = geo_to_mol(xyz['coords'], symbols=xyz['symbols'])
         self._mol_type = 'geo'
 
@@ -167,11 +174,11 @@ class BACDatapoint:
         return self._ref_data
 
     @property
-    @_Decorators.assert_model_chemistry
+    @_Decorators.assert_level_of_theory
     def calc_data(self) -> float:
         """Get calculated enthalpy in kcal/mol"""
         if self._calc_data is None:
-            self._calc_data = self.spc.calculated_data[self.model_chemistry].thermo_data.H298.value_si / 4184
+            self._calc_data = self.spc.calculated_data[self.level_of_theory].thermo_data.H298.value_si / 4184
         return self._calc_data
 
     @property
@@ -331,20 +338,21 @@ class BACDataset:
             raise NotImplementedError(f'{weight_type} weight type is unavailable')
 
 
-def extract_dataset(ref_database: ReferenceDatabase, model_chemistry: str) -> BACDataset:
+def extract_dataset(ref_database: ReferenceDatabase,
+                    level_of_theory: Union[LevelOfTheory, CompositeLevelOfTheory]) -> BACDataset:
     """
     Extract species for a given model chemistry from a reference
     database and convert to a BACDataset.
 
     Args:
-         ref_database: Reference database
-         model_chemistry: Model chemistry.
+         ref_database: Reference database.
+         level_of_theory: Level of theory.
 
     Returns:
         BACDataset containing species with data available at given model chemistry.
     """
-    species = ref_database.extract_model_chemistry(model_chemistry, as_error_canceling_species=False)
-    return BACDataset([BACDatapoint(spc, model_chemistry=model_chemistry) for spc in species])
+    species = ref_database.extract_level_of_theory(level_of_theory, as_error_canceling_species=False)
+    return BACDataset([BACDatapoint(spc, level_of_theory=level_of_theory) for spc in species])
 
 
 def geo_to_mol(coords: np.ndarray, symbols: Iterable[str] = None, nums: Iterable[int] = None) -> Molecule:
