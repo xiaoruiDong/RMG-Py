@@ -67,6 +67,7 @@ from arkane.encorr.bac import BACJob
 from arkane.encorr.corr import assign_frequency_scale_factor
 from arkane.explorer import ExplorerJob
 from arkane.kinetics import KineticsJob
+from arkane.modelchem import LevelOfTheory, CompositeLevelOfTheory
 from arkane.pdep import PressureDependenceJob
 from arkane.statmech import StatMechJob
 from arkane.thermo import ThermoJob
@@ -509,13 +510,13 @@ def explorer(source, explore_tol=0.01, energy_tol=np.inf, flux_tol=0.0, bathGas=
     job_list.append(job)
 
 
-def bac(model_chemistry, bac_type='p', train_names='main', weighted=False,
+def bac(level_of_theory, bac_type='p', train_names='main', weighted=False,
         write_to_database=False, overwrite=False,
         fit_mol_corr=True, global_opt=True, global_opt_iter=10):
     """Generate a BAC job"""
     global job_list
     job = BACJob(
-        model_chemistry,
+        level_of_theory,
         bac_type=bac_type,
         db_names=train_names,
         weighted=weighted,
@@ -620,6 +621,8 @@ def load_input_file(path):
         'SMILES': SMILES,
         'adjacencyList': adjacencyList,
         'InChI': InChI,
+        'LevelOfTheory': LevelOfTheory,
+        'CompositeLevelOfTheory': CompositeLevelOfTheory,
     }
 
     load_necessary_databases()
