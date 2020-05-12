@@ -254,6 +254,9 @@ class TestSurfaceReaction(unittest.TestCase):
                                numpy.log10(target),
                                places=0)
 
+    def test_get_rate_coefficient_units_from_reaction_order(self):
+
+        self.assertEqual(self.rxn1s.generate_reverse_rate_coefficient().A.units,'m^2/(mol*s)')
 
 class TestReaction(unittest.TestCase):
     """
