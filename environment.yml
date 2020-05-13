@@ -47,5 +47,6 @@ dependencies:
   - scikit-learn
   - scipy
   - symmetry
+  - sphinx =1.8.5
   - xlrd
   - xlwt
