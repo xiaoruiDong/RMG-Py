@@ -731,6 +731,8 @@ class Species(object):
                 self.thermo = self.thermo.result()
         else:
             submit(self, solvent_name)
+            if solvent_name:
+                self.thermo.comment += ' Solvation correction with {} as solvent.'.format(solvent_name)
             if not isinstance(self.thermo, (NASA, Wilhoit, ThermoData)):
                 self.thermo = self.thermo.result()
 
